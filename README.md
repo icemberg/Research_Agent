@@ -1,15 +1,3 @@
----
-title: Research Agent
-emoji: 🧠
-colorFrom: blue
-colorTo: indigo
-sdk: gradio
-sdk_version: 4.36.1
-python_version: 3.11
-app_file: app.py
-pinned: false
----
-
 # Research Agent with Citations
 
 **🌐 Live Demo:** [https://research-agent-27qr.onrender.com/](https://research-agent-27qr.onrender.com/)
