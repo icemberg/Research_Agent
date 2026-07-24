@@ -81,6 +81,21 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+from fastapi.responses import RedirectResponse, FileResponse, Response
+import os
+
+@app.get("/")
+async def root():
+    """Redirect root to API documentation."""
+    return RedirectResponse(url="/docs")
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon or suppress 404 error."""
+    if os.path.exists("frontend/public/favicon.png"):
+        return FileResponse("frontend/public/favicon.png")
+    return Response(content=b"", media_type="image/x-icon", status_code=204)
+
 @app.get("/health")
 async def health_check():
     """Liveness/readiness check."""

@@ -14,7 +14,7 @@ from pydantic import Field
 class Settings(BaseSettings):
     """Application settings driven by environment variables."""
 
-    # ── LLM Providers ────────────────────────────────────────
+    #  LLM Providers 
     groq_api_key: str = Field(default="", description="Groq API key")
     groq_model_primary: str = Field(
         default="llama-3.3-70b-versatile",
@@ -28,10 +28,10 @@ class Settings(BaseSettings):
     google_api_key: str = Field(default="", description="Google Gemini API key")
     gemini_model: str = Field(default="gemini-2.0-flash", description="Gemini model name")
 
-    # ── Web Search ───────────────────────────────────────────
+    #  Web Search ─
     tavily_api_key: str = Field(default="", description="Tavily API key for web search")
 
-    # ── Retrieval ────────────────────────────────────────────
+    #  Retrieval 
     embedding_model: str = Field(
         default="all-MiniLM-L6-v2",
         description="SentenceTransformer embedding model",
@@ -48,17 +48,17 @@ class Settings(BaseSettings):
     )
     enable_reranker: bool = Field(default=True, description="Enable cross-encoder re-ranking")
 
-    # ── Citation Validation ──────────────────────────────────
+    #  Citation Validation 
     max_citation_retries: int = Field(
         default=2, description="Max retries for citation validation"
     )
 
-    # ── Storage ──────────────────────────────────────────────
+    #  Storage 
     chroma_persist_dir: str = Field(default="./data/chroma")
     bm25_persist_dir: str = Field(default="./data/bm25")
     sqlite_db_path: str = Field(default="./data/research_agent.db")
 
-    # ── Server ───────────────────────────────────────────────
+    #  Server ─
     api_host: str = Field(default="0.0.0.0")
     api_port: int = Field(default=8000)
 
