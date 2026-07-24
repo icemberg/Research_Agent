@@ -22,7 +22,9 @@ if not Path(".data").exists() and Path("sample_docs").exists():
 from backend.main import app
 
 try:
+    # pyrefly: ignore [missing-import]
     import spaces
+    # pyrefly: ignore [missing-import]
     import gradio as gr
     
     @spaces.GPU

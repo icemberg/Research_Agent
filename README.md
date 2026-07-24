@@ -167,6 +167,19 @@ Access the frontend at `http://localhost:5173`.
 
 ---
 
+## ☁️ Cloud Deployment
+
+This Research Agent is a **production-ready** RAG system. It is fully containerized and can be deployed to any standard cloud platform (AWS, GCP, Azure, DigitalOcean, etc.) with adequate resources using the provided `Dockerfile`.
+
+### Free-Tier Limitations
+While you can deploy this on free cloud providers, please be aware of the following aggressive limitations imposed by free tiers:
+
+- **Render (Free Tier)**: You may encounter **Memory Limit Exceeded (OOM)** errors. The application loads embedding and re-ranking models into memory (`fastembed`), which can exceed the strict 512MB RAM limit on Render's free tier during heavy usage or startup.
+- **Hugging Face Spaces (Free Tier)**: Hugging Face has recently removed the free "CPU Basic" tier for Gradio spaces, forcing all free Gradio apps onto their "ZeroGPU" environment. The ZeroGPU orchestrator intercepts the root URL (`/`) expecting a standard Gradio UI configuration file. Because our app runs a custom **FastAPI + React** stack at the root URL, the ZeroGPU scanner gets confused and abruptly shuts down the container with a `No @spaces.GPU function detected` error.
+  - *Workaround for HF Spaces*: If you wish to deploy to HF Spaces, you **must** use the **Docker SDK** instead of the Gradio SDK. Docker Spaces natively default to the CPU tier and bypass the ZeroGPU orchestrator entirely.
+
+---
+
 ## 💻 CLI Commands
 
 The system includes a powerful CLI `research-agent` for terminal usage:
