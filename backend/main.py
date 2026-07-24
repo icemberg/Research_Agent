@@ -82,19 +82,49 @@ app.include_router(api_router)
 
 
 from fastapi.responses import RedirectResponse, FileResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi import HTTPException
 import os
 
-@app.get("/")
-async def root():
-    """Redirect root to API documentation."""
-    return RedirectResponse(url="/docs")
+frontend_dist = "frontend/dist"
 
-@app.get("/favicon.ico")
-async def favicon():
-    """Serve favicon or suppress 404 error."""
-    if os.path.exists("frontend/public/favicon.png"):
-        return FileResponse("frontend/public/favicon.png")
-    return Response(content=b"", media_type="image/x-icon", status_code=204)
+if os.path.exists(frontend_dist):
+    # Mount the /assets directory for JS/CSS files
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    # Serve the root index.html
+    @app.get("/")
+    async def root():
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
+    # Catch-all for other frontend files and SPA routing
+    @app.get("/{file_name:path}")
+    async def serve_frontend(file_name: str):
+        # Do not intercept API requests or docs
+        if file_name.startswith("api/") or file_name in ["docs", "openapi.json", "health"]:
+            raise HTTPException(status_code=404)
+        
+        # Try to serve exact file (e.g. favicon.png)
+        file_path = os.path.join(frontend_dist, file_name)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        # Fallback to SPA index.html
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        """Redirect root to API documentation."""
+        return RedirectResponse(url="/docs")
+
+    @app.get("/favicon.ico")
+    async def favicon():
+        """Serve favicon or suppress 404 error."""
+        if os.path.exists("frontend/public/favicon.png"):
+            return FileResponse("frontend/public/favicon.png")
+        return Response(content=b"", media_type="image/x-icon", status_code=204)
 
 @app.get("/health")
 async def health_check():
