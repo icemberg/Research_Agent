@@ -86,7 +86,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 import os
 
-frontend_dist = "frontend/dist"
+frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
 
 if os.path.exists(frontend_dist):
     # Mount the /assets directory for JS/CSS files
