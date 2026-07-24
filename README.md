@@ -1,3 +1,16 @@
+---
+title: Research Agent
+emoji: 🧠
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 4.36.1
+python_version: 3.11
+app_file: app.py
+pinned: false
+---
+
+
 # Research Agent with Citations
 
 A production-grade RAG system that takes a question + a document corpus and produces a synthesized, per-claim-cited answer — or an explicit abstention when evidence is insufficient. Every factual claim is traceable to a specific source passage — an answer without a citation is treated as an answer that doesn't exist.
