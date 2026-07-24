@@ -26,10 +26,10 @@ class CrossEncoderReranker:
     def model(self):
         """Lazy-load the cross-encoder model."""
         if self._model is None:
-            from sentence_transformers import CrossEncoder
+            from fastembed.rerank.cross_encoder import TextCrossEncoder
 
             logger.info(f"Loading re-ranker model: {self.model_name}")
-            self._model = CrossEncoder(self.model_name)
+            self._model = TextCrossEncoder(self.model_name)
             logger.info("Re-ranker model loaded")
         return self._model
 
@@ -49,7 +49,8 @@ class CrossEncoderReranker:
         pairs = [(query, p.text) for p in passages]
 
         # Score all pairs
-        scores = self.model.predict(pairs)
+        scores_gen = self.model.rerank_pairs(pairs)
+        scores = list(scores_gen)
 
         # Assign scores and sort
         scored_passages = []

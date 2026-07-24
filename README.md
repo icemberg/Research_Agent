@@ -1,5 +1,7 @@
 # Research Agent with Citations
 
+**🌐 Live Demo:** [https://research-agent-27qr.onrender.com/](https://research-agent-27qr.onrender.com/)
+
 A production-grade RAG system that takes a question + a document corpus and produces a synthesized, per-claim-cited answer — or an explicit abstention when evidence is insufficient. Every factual claim is traceable to a specific source passage — an answer without a citation is treated as an answer that doesn't exist.
 
 ## ✨ Features
