@@ -59,7 +59,7 @@ class Database:
             conn.commit()
         logger.info(f"Database initialized: {self.db_path}")
 
-    # ── Documents ────────────────────────────────────────────
+    #  Documents 
 
     def save_document(self, doc: DocumentInfo) -> None:
         """Save or update document metadata."""
@@ -99,7 +99,7 @@ class Database:
                 for row in rows
             ]
 
-    # ── Questions ────────────────────────────────────────────
+    #  Questions 
 
     def save_question(self, response: AnswerResponse) -> None:
         """Save a question/answer pair."""

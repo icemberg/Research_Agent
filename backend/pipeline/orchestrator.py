@@ -79,7 +79,7 @@ class Orchestrator:
             f"web_search={'enabled' if self.web_search else 'disabled'}"
         )
 
-    # ── Ingestion ────────────────────────────────────────────
+    #  Ingestion 
 
     def ingest_file(self, file_path: Path, source_name: str | None = None) -> dict:
         """
@@ -153,7 +153,7 @@ class Orchestrator:
 
         return results
 
-    # ── Question Answering ───────────────────────────────────
+    #  Question Answering
 
     async def ask(
         self,
@@ -171,7 +171,7 @@ class Orchestrator:
 
         logger.info(f"[{question_id}] Question: {question}")
 
-        # ── Step 1: Route ────────────────────────────────────
+        #  Step 1: Route 
         has_documents = self.vector_store.count() > 0
         doc_summaries = self._get_document_summaries()
 
@@ -183,7 +183,7 @@ class Orchestrator:
         )
         logger.info(f"[{question_id}] Router decision: {decision.value}")
 
-        # ── Step 2: Handle abstention ────────────────────────
+        #  Step 2: Handle abstention 
         if decision == RouteDecision.ABSTAIN:
             return AnswerResponse(
                 answer_text=(
@@ -199,7 +199,7 @@ class Orchestrator:
                 question=question,
             )
 
-        # ── Step 3: Retrieve passages ────────────────────────
+        #  Step 3: Retrieve passages 
         passages: list[Passage] = []
 
         if decision == RouteDecision.WEB_SEARCH and self.web_search:
@@ -237,16 +237,16 @@ class Orchestrator:
 
         logger.info(f"[{question_id}] Retrieved {len(passages)} passages")
 
-        # ── Step 4: Re-rank (optional) ───────────────────────
+        #  Step 4: Re-rank (optional) ─
         if self.reranker and len(passages) > settings.top_k:
             passages = self.reranker.rerank(question, passages, top_k=settings.top_k)
             logger.info(f"[{question_id}] Re-ranked to top {len(passages)} passages")
 
-        # ── Step 5: Synthesize with citations ────────────────
+        #  Step 5: Synthesize with citations 
         answer_text, messages = await self.synthesizer.synthesize(question, passages)
         logger.info(f"[{question_id}] Synthesis complete ({len(answer_text)} chars)")
 
-        # ── Step 6: Validate citations (with retry) ──────────
+        #  Step 6: Validate citations (with retry)
         final_answer = answer_text
         validation = self.validator.validate(final_answer, passages)
 
@@ -273,7 +273,6 @@ class Orchestrator:
                 f"Proceeding with best-effort answer."
             )
 
-        # ── Step 7: Format response ──────────────────────────
         # Check for explicit abstention in the answer
         is_abstained = "ABSTAIN:" in final_answer.upper()
 
@@ -431,7 +430,6 @@ class Orchestrator:
             logger.error(f"[{question_id}] Stream error: {e}", exc_info=True)
             yield {"type": "error", "data": str(e)}
 
-    # ── Helpers ──────────────────────────────────────────────
 
     def _get_document_summaries(self) -> list[str]:
         """Get a brief summary of ingested document names for the router."""
