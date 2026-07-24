@@ -1,6 +1,6 @@
 # Research Agent with Citations
 
-A production-grade RAG system that answers questions with **per-claim citations**, grounded strictly in a defined evidence set. Every factual claim is traceable to a specific source passage — an answer without a citation is treated as an answer that doesn't exist.
+A production-grade RAG system that takes a question + a document corpus and produces a synthesized, per-claim-cited answer — or an explicit abstention when evidence is insufficient. Every factual claim is traceable to a specific source passage — an answer without a citation is treated as an answer that doesn't exist.
 
 ## ✨ Features
 
@@ -8,7 +8,7 @@ A production-grade RAG system that answers questions with **per-claim citations*
 - **Contextual Chunking**: Anthropic-style context prefixes on every chunk for dramatically better retrieval.
 - **Cross-Encoder Re-ranking**: MS-MARCO re-ranker for precision on top-k results.
 - **Citation Validation**: Programmatic checks with bounded retry — every `[n]` marker is verified via self-reflection.
-- **Multi-Provider LLM**: Groq primary → Groq secondary → Gemini fallback chain.
+- **Multi-Provider LLM**: Groq primary (llama-3.3-70b-versatile) → Gemini fallback chain (gemini-2.0-flash).
 - **Web Search Fallback**: Tavily integration when the corpus is insufficient.
 - **Abstention**: Explicit "I don't know" when evidence is lacking, preventing hallucinations.
 - **Streaming**: SSE-based real-time token streaming.
@@ -16,62 +16,82 @@ A production-grade RAG system that answers questions with **per-claim citations*
 
 ---
 
-## 🏗 Architecture
+## 🏗 Architecture Overview
 
 The system follows a modular, agentic Retrieval-Augmented Generation (RAG) pipeline:
 
 ```mermaid
-graph TD
-    %% Define Styles
-    classDef user fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
-    classDef router fill:#8b5cf6,stroke:#5b21b6,stroke-width:2px,color:#fff;
-    classDef retriever fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
-    classDef llm fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
-    classDef db fill:#6b7280,stroke:#374151,stroke-width:2px,color:#fff;
-
-    %% Nodes
-    User([User Query]):::user
-    Router{Query Router}:::router
+flowchart TD
+    CL["Client<br/>(React UI / CLI)"] -->|"POST /api/v1/ask"| GW["FastAPI Gateway"]
+    CL -->|"POST /api/v1/ingest"| GW
     
-    WebSearch[Tavily Web Search]:::retriever
-    Dense[Dense Retriever <br/> ChromaDB]:::db
-    Sparse[Sparse Retriever <br/> BM25]:::db
+    GW --> QR{"Query Router"}
+    QR -->|"corpus"| RET["Hybrid Retriever<br/>(Dense + BM25 → RRF)"]
+    QR -->|"web search"| WS["Tavily Web Search"]
+    QR -->|"abstain"| AB["Abstain"]
     
-    RRF(Reciprocal Rank Fusion)
-    Reranker[Cross-Encoder Reranker]
-    Assembler[Context Assembler]
+    subgraph Ingestion["Ingestion Pipeline"]
+        DOC["Documents<br/>PDF/DOCX/TXT/MD/HTML/CSV"] --> PARSE["Document Loader"]
+        PARSE --> CHUNK["Semantic Chunker<br/>(~400 tokens, 15% overlap)"]
+        CHUNK --> EMB["Embedder<br/>(MiniLM-L6-v2)"]
+        EMB --> VDB[("ChromaDB")]
+        CHUNK --> BM[("BM25 Index")]
+    end
     
-    Synthesizer(LLM Synthesizer):::llm
-    Validator{Citation Validator}:::llm
+    VDB --> RET
+    BM --> RET
+    WS --> NORM["Normalize → Passage"]
+    NORM --> CTX
+    RET --> RRK["Cross-Encoder Re-ranker"]
+    RRK --> CTX["Context Assembler"]
     
-    Final([Cited Response]):::user
-
-    %% Edges
-    User --> Router
-    Router -->|Corpus Query| Dense
-    Router -->|Corpus Query| Sparse
-    Router -->|Web Query| WebSearch
+    CTX --> SYN["Synthesizer<br/>(Groq → Gemini fallback)"]
+    SYN --> VAL{"Citation Validator"}
+    VAL -->|"pass"| FMT["Response Formatter"]
+    VAL -->|"fail (max 2 retries)"| SYN
     
-    Dense --> RRF
-    Sparse --> RRF
-    WebSearch --> Assembler
+    FMT --> OUT["Final Answer + Citations"]
+    AB --> OUT
+    OUT -->|"SSE / JSON"| CL
     
-    RRF --> Reranker
-    Reranker --> Assembler
-    
-    Assembler --> Synthesizer
-    Synthesizer --> Validator
-    
-    Validator -->|Pass| Final
-    Validator -->|Fail / Retry| Synthesizer
+    style Ingestion fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+    style VAL fill:#fff3cd,stroke:#856404
+    style QR fill:#d1ecf1,stroke:#0c5460
 ```
 
-1. **Query Router**: Determines if the question requires the internal corpus or an external web search.
-2. **Hybrid Retriever**: Queries ChromaDB (semantic) and BM25 (keyword).
-3. **RRF & Reranker**: Merges results mathematically, then uses a cross-encoder to compute true relevance scores.
-4. **Context Assembler**: Formats the top passages into a strict XML structure.
-5. **Synthesizer**: Uses an LLM to generate the answer with inline citations `[1]`.
-6. **Citation Validator**: A secondary LLM pass (or programmatic check) ensuring every citation corresponds exactly to the provided XML chunks.
+---
+
+## 📂 Project Structure
+
+```text
+Research_Agent/
+├── backend/
+│   ├── api/               # FastAPI route handlers
+│   ├── chunking/          # Semantic, paragraph-aware chunking
+│   ├── indexing/          # ChromaDB, BM25, and Embedder wrappers
+│   ├── llm/               # Base LLM clients (Groq, Gemini) & Fallback routing
+│   ├── loaders/           # Document parsing (PDF, DOCX, TXT, MD, HTML, CSV)
+│   ├── models/            # Shared Pydantic schemas (Passages, Citations)
+│   ├── pipeline/          # RAG components (Router, Assembler, Synthesizer, Validator, Orchestrator)
+│   ├── prompts/           # LLM system prompts and formatting rules
+│   ├── retrieval/         # Hybrid Retrieval (RRF) and Cross-Encoder Re-ranking
+│   ├── storage/           # SQLite database for Q&A history
+│   ├── tools/             # Tavily Web Search integration
+│   ├── cli.py             # Typer CLI application
+│   ├── config.py          # Environment settings
+│   └── main.py            # FastAPI entry point
+│
+├── frontend/              # React + Vite application
+│   ├── src/
+│   │   ├── components/    # AskPanel, AnswerView, SourceLibrary, CitationPanel
+│   │   ├── hooks/         # useSSE, useDocuments
+│   │   └── store/         # AppContext
+│
+├── sample_docs/           # Demo corpus for testing
+├── tests/                 # Unit and end-to-end testing suite
+├── Dockerfile             # Multi-stage build for Backend & Frontend
+└── docker-compose.yml     # Container orchestration
+```
 
 ---
 
@@ -155,29 +175,26 @@ research-agent history
 
 ---
 
-## 🛠 Tech Stack
+## ⚖️ Tradeoffs & Design Decisions
 
-| Component | Technology |
-|---|---|
-| **LLM (Primary)** | Groq (llama-3.3-70b-versatile + mixtral-8x7b-32768) |
-| **LLM (Fallback)** | Google Gemini (gemini-2.0-flash) |
-| **Embeddings** | sentence-transformers (all-MiniLM-L6-v2) |
-| **Vector Store** | ChromaDB (embedded, persistent) |
-| **Keyword Index** | BM25 (rank_bm25) |
-| **Re-ranker** | Cross-Encoder (ms-marco-MiniLM-L-6-v2) |
-| **Web Search** | Tavily API |
-| **API Framework** | FastAPI + SSE (Server-Sent Events) |
-| **Frontend** | React + Vite + Tailwind CSS |
-| **Storage** | SQLite |
+| Decision | Chosen | Alternative | Why |
+|---|---|---|---|
+| **Retrieval** | Hybrid (Dense + BM25 + RRF) | Pure dense | Exact-match terms (dates, IDs, names) are critical for citations; BM25 catches what embeddings miss. |
+| **LLM** | Groq primary + Gemini fallback | Single provider | Resilience — Groq is fast but rate-limited; Gemini ensures availability. |
+| **Vector store** | ChromaDB (embedded) | FAISS / Pinecone | Zero-ops, persistent, metadata filtering — matches single-node scope perfectly. |
+| **Chunking** | Semantic (paragraph boundaries) | Fixed character split | Prevents facts from being severed at arbitrary boundaries. |
+| **Retry cap** | Max 2 citation retries | Unbounded | KISS — unbounded retries trade cost/latency for marginal gains. |
+| **Re-ranker** | Cross-encoder (optional) | No re-ranker | Significant quality boost for small cost; can be disabled if needed. |
+| **Frontend** | React + Vite | Jinja2 server-rendered | Enables rich streaming UX, clickable citations, and modern interactions. |
+| **State management** | React Context | Redux / Zustand | Sufficient for scope; avoids YAGNI framework overhead. |
+
+### ⚠️ Known Failure Modes
+- **OCR-quality scanned PDFs**: Can lead to degraded chunk quality. Mitigated via error logging and manual review.
+- **Extremely long documents**: May exceed the assembler's token budget. Mitigated by passage-level truncation and top-k caps.
+- **Groq Rate Limits**: Strict limits can cause 429s. Mitigated by the robust Gemini fallback chain.
+- **BM25 Cold Start**: The first query after a cold boot loads the BM25 index from disk, which adds a few milliseconds of latency.
 
 ---
-
-## ⚠️ Tradeoffs & Known Limitations
-
-- **Hybrid > pure-dense**: BM25 catches exact-match terms (dates, IDs, names) that embeddings miss, but adds a slight overhead.
-- **Capped retries (max 2)**: Unbounded self-correction loops trade cost/latency for marginal gains. We cap at 2 retries.
-- **Single-node scope**: ChromaDB is in-process; for horizontal scaling, you would need a hosted vector database.
-- **Context budget**: Extremely long documents may exceed the assembler's token budget, leading to truncation.
 
 ## 📄 License
 MIT
