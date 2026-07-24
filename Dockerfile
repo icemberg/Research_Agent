@@ -53,6 +53,9 @@ RUN pip install --no-cache-dir .
 
 COPY backend/ ./backend/
 
+# Copy built frontend assets from Stage 1 so FastAPI can serve them statically
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
 RUN mkdir -p .data
 
 ENV PYTHONPATH=/app
