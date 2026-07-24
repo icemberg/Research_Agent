@@ -30,6 +30,7 @@ Thumbs.db
 
 # Node (frontend)
 frontend/node_modules/
+frontend/public/favicon.png
 
 # Testing
 .pytest_cache/
