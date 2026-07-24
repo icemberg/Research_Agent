@@ -58,6 +58,11 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 RUN mkdir -p .data
 
+# Pre-seed the demo database during build
+# This bakes the vector store into the Docker image and pre-downloads HuggingFace models
+COPY sample_docs/ ./sample_docs/
+RUN GROQ_API_KEY=dummy_key python -m backend.cli ingest sample_docs/
+
 ENV PYTHONPATH=/app
 ENV HOST=0.0.0.0
 ENV PORT=8000

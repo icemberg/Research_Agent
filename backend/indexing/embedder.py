@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Embedder:
-    """SentenceTransformer embedding wrapper with lazy model loading."""
+    """FastEmbed wrapper with lazy model loading."""
 
     def __init__(self, model_name: str | None = None):
         self.model_name = model_name or settings.embedding_model
@@ -26,17 +26,19 @@ class Embedder:
     def model(self):
         """Lazy-load the model on first use."""
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
+            # pyrefly: ignore [missing-import]
+            from fastembed import TextEmbedding
 
             logger.info(f"Loading embedding model: {self.model_name}")
-            self._model = SentenceTransformer(self.model_name)
-            logger.info(f"Embedding model loaded. Dimension: {self._model.get_sentence_embedding_dimension()}")
+            self._model = TextEmbedding(self.model_name)
+            logger.info("Embedding model loaded.")
         return self._model
 
     @property
     def dimension(self) -> int:
         """Embedding vector dimension."""
-        return self.model.get_sentence_embedding_dimension()
+        # all-MiniLM-L6-v2 uses 384 dimensions
+        return 384
 
     def embed(self, texts: list[str], batch_size: int = 64) -> list[list[float]]:
         """
@@ -52,13 +54,11 @@ class Embedder:
         if not texts:
             return []
 
-        embeddings = self.model.encode(
+        embeddings_gen = self.model.embed(
             texts,
             batch_size=batch_size,
-            show_progress_bar=len(texts) > 100,
-            normalize_embeddings=True,  # Cosine similarity = dot product
         )
-        return embeddings.tolist()
+        return [e.tolist() for e in embeddings_gen]
 
     def embed_query(self, query: str) -> list[float]:
         """Embed a single query string."""

@@ -33,11 +33,11 @@ class Settings(BaseSettings):
 
     #  Retrieval 
     embedding_model: str = Field(
-        default="all-MiniLM-L6-v2",
-        description="SentenceTransformer embedding model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        description="FastEmbed embedding model",
     )
     reranker_model: str = Field(
-        default="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        default="Xenova/ms-marco-MiniLM-L-6-v2",
         description="Cross-encoder reranker model",
     )
     chunk_size: int = Field(default=400, description="Target chunk size in tokens")
