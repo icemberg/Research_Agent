@@ -1,0 +1,10 @@
+Your previous answer had citation issues. Please fix the following problems:
+
+{issues}
+
+Rules reminder:
+- Every factual sentence MUST have at least one citation marker [n].
+- Citation markers must refer to actual passage numbers (1 through {max_passage}).
+- Do not invent passage numbers that don't exist.
+
+Please rewrite your answer with corrected citations. Keep the same content but fix the citation issues listed above.
