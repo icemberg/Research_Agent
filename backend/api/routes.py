@@ -44,7 +44,12 @@ async def ingest_documents(
             tmp_path = Path(tmp.name)
 
         try:
-            result = orchestrator.ingest_file(tmp_path, source_name=upload_file.filename)
+            from fastapi.concurrency import run_in_threadpool
+            result = await run_in_threadpool(
+                orchestrator.ingest_file,
+                tmp_path,
+                upload_file.filename
+            )
             result["name"] = upload_file.filename or result["name"]
 
             # Save to database
