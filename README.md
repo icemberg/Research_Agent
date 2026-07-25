@@ -13,7 +13,11 @@ pinned: false
 
 # Research Agent with Citations
 
-**🌐 Live Demo:** [https://research-agent-27qr.onrender.com/](https://research-agent-27qr.onrender.com/)
+**🚀 Live Demo:** [https://researchagent-production-ebd8.up.railway.app/](https://researchagent-production-ebd8.up.railway.app/)
+
+> ⚠️ **Note:** The Railway deployment is available for **30 days** from July 25, 2026 (trial plan). After that, the live demo link will no longer be active.
+
+**🤗 Hugging Face Space (Reference):** [https://huggingface.co/spaces/icemberg/Research_agent](https://huggingface.co/spaces/icemberg/Research_agent)
 
 A production-grade RAG system that takes a question + a document corpus and produces a synthesized, per-claim-cited answer — or an explicit abstention when evidence is insufficient. Every factual claim is traceable to a specific source passage — an answer without a citation is treated as an answer that doesn't exist.
 
@@ -170,14 +174,53 @@ Access the frontend at `http://localhost:5173`.
 
 ## ☁️ Cloud Deployment
 
-This Research Agent is a **production-ready** RAG system. It is fully containerized and can be deployed to any standard cloud platform (AWS, GCP, Azure, DigitalOcean, etc.) with adequate resources using the provided `Dockerfile`.
+This Research Agent is a **production-ready** RAG system. It is fully containerized and can be deployed to any standard cloud platform (AWS, GCP, Azure, DigitalOcean, Railway, etc.) with adequate resources using the provided `Dockerfile`.
 
-### Free-Tier Limitations
-While you can deploy this on free cloud providers, please be aware of the following aggressive limitations imposed by free tiers:
+The application is currently deployed on **[Railway](https://researchagent-production-ebd8.up.railway.app/)**.
 
-- **Render (Free Tier)**: You may encounter **Memory Limit Exceeded (OOM)** errors. The application loads embedding and re-ranking models into memory (`fastembed`), which can exceed the strict 512MB RAM limit on Render's free tier during heavy usage or startup.
-- **Hugging Face Spaces (Free Tier)**: Hugging Face has recently removed the free "CPU Basic" tier for Gradio spaces, forcing all free Gradio apps onto their "ZeroGPU" environment. The ZeroGPU orchestrator intercepts the root URL (`/`) expecting a standard Gradio UI configuration file. Because our app runs a custom **FastAPI + React** stack at the root URL, the ZeroGPU scanner gets confused and abruptly shuts down the container with a `No @spaces.GPU function detected` error.
-  - *Workaround for HF Spaces*: If you wish to deploy to HF Spaces, you **must** use the **Docker SDK** instead of the Gradio SDK. Docker Spaces natively default to the CPU tier and bypass the ZeroGPU orchestrator entirely.
+### 🧗 Deployment Journey & Complications
+
+Deploying this application to free-tier cloud providers revealed several platform-specific limitations. Here is a summary of every platform we attempted and the issues encountered:
+
+#### 1. Render (Free Tier) — ❌ Memory Limit Exceeded
+- The application loads **sentence-transformers embedding models** and a **cross-encoder re-ranking model** into memory at runtime.
+- Combined with ChromaDB and the Python runtime, peak memory usage exceeds **1 GB**.
+- Render's free tier enforces a strict **512 MB RAM limit**, causing the container to be OOM-killed during startup or first ingestion.
+- **Result:** Application crashes immediately or on first document upload.
+- **Reference Link:** [https://research-agent-27qr.onrender.com/](https://research-agent-27qr.onrender.com/) — You can test with the pre-seeded sample documents only. Uploading new documents will trigger OOM and crash the container.
+
+#### 2. Hugging Face Spaces (Free Tier) — ❌ ZeroGPU Incompatibility
+- Hugging Face has removed the free "CPU Basic" hardware tier for Gradio SDK spaces.
+- All free Gradio spaces are now forced onto the **ZeroGPU** environment, which runs an aggressive orchestrator that:
+  - Intercepts the root URL (`/`) expecting a standard Gradio config file.
+  - Scans for a `@spaces.GPU` decorated function at startup.
+- Because our app runs a custom **FastAPI + React** stack (not Gradio), the ZeroGPU scanner fails to find the expected Gradio configuration and abruptly kills the container with: `No @spaces.GPU function detected during startup`.
+- We attempted multiple workarounds (dummy Gradio mount, `@spaces.GPU` bypass), but the ZeroGPU orchestrator is deeply integrated and cannot be reliably bypassed with a non-Gradio app.
+- **Workaround:** Use the **Docker SDK** instead of the Gradio SDK when creating the Space. Docker Spaces default to the CPU tier and bypass ZeroGPU entirely.
+- **Reference Space:** [https://huggingface.co/spaces/icemberg/Research_agent](https://huggingface.co/spaces/icemberg/Research_agent)
+
+#### 3. Google Cloud Platform (Cloud Run) — ❌ Billing Required
+- GCP Cloud Run requires enabling **Artifact Registry**, **Cloud Build**, and **Cloud Run** APIs.
+- All of these require an active billing account with a valid payment method.
+- Even with the GCP free trial, the billing account must be explicitly opened and linked to the project before any services can be enabled.
+- **Result:** Deployment blocked by `FAILED_PRECONDITION: Billing account for project is not open`.
+
+#### 4. Railway — ✅ Successfully Deployed
+- Railway supports Docker-based deployments with **configurable resource limits** (up to 8 GB RAM on the trial plan).
+- The application deployed successfully with the provided `Dockerfile` and environment variables.
+- Railway's trial plan provides **$5 of free credits** (~500 hours of usage), which is sufficient for demonstration purposes.
+- **⚠️ The Railway deployment is available for approximately 30 days from July 25, 2026.** After the trial credits are exhausted, the live demo will no longer be accessible.
+
+### 💡 Recommended Production Deployment
+
+For a permanent, production deployment, we recommend:
+
+| Platform | Method | Min. RAM | Notes |
+|---|---|---|---|
+| **AWS EC2** | Docker Compose on `t3.small`+ | 2 GB | Persistent storage, full control |
+| **GCP Cloud Run** | Single container | 2 GB | Requires billing account |
+| **Railway** | Auto-deploy from GitHub | 2 GB | Easiest setup, trial credits available |
+| **DigitalOcean Droplet** | Docker Compose | 2 GB | $6/month, persistent storage |
 
 ---
 
