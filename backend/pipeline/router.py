@@ -77,7 +77,18 @@ class QueryRouter:
 
             # Parse the response
             if "ABSTAIN" in decision_text:
-                decision = RouteDecision.ABSTAIN
+                # Never abstain when we have documents — the retriever + re-ranker
+                # are far better at judging relevance than the router (which only
+                # sees file names, not actual content). Let retrieval run and
+                # decide; the orchestrator already handles empty retrieval results.
+                if has_documents:
+                    logger.info(
+                        f"Router suggested ABSTAIN but documents exist — "
+                        f"overriding to CORPUS to let retriever decide relevance"
+                    )
+                    decision = RouteDecision.CORPUS
+                else:
+                    decision = RouteDecision.ABSTAIN
             elif "WEB_SEARCH" in decision_text and allow_web_search:
                 decision = RouteDecision.WEB_SEARCH
             elif "WEB_SEARCH" in decision_text and not allow_web_search:
