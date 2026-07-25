@@ -43,6 +43,14 @@ async def lifespan(app: FastAPI):
     app.state.orchestrator = Orchestrator()
     app.state.database = Database()
 
+    # Eagerly load the embedding model now so the (slow) download/init
+    # happens during startup instead of blocking the first HTTP request.
+    # Without this, the embedder's lazy `@property` defers loading until
+    # first use, causing 502s while the model downloads on first request.
+    logger.info("Eagerly loading embedding model before accepting requests...")
+    app.state.orchestrator.embedder.load()
+    logger.info("Embedding model ready.")
+
     logger.info(
         f"Research Agent API ready. "
         f"Vector store: {app.state.orchestrator.vector_store.count()} passages"

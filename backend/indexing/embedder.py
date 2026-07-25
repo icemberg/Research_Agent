@@ -34,6 +34,17 @@ class Embedder:
             logger.info("Embedding model loaded.")
         return self._model
 
+    def load(self) -> None:
+        """
+        Force the model to load/download immediately (eager loading).
+
+        Intended to be called during application startup so that the
+        (potentially slow) model download/initialization happens before
+        the server begins accepting HTTP requests, rather than blocking
+        the first incoming request.
+        """
+        _ = self.model
+
     @property
     def dimension(self) -> int:
         """Embedding vector dimension."""
