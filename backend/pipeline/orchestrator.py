@@ -433,12 +433,11 @@ class Orchestrator:
 
     def _get_document_summaries(self) -> list[str]:
         """Get a brief summary of ingested document names for the router."""
-        # Query a few unique source names from the vector store
+        # Query all unique source names from the vector store
         try:
-            # Get all unique source names from ChromaDB
+            # Get all metadata from ChromaDB to find unique source names
             results = self.vector_store.collection.get(
-                include=["metadatas"],
-                limit=100,
+                include=["metadatas"]
             )
             if results and results["metadatas"]:
                 sources = set()
