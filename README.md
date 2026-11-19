@@ -132,8 +132,8 @@ The easiest way to run the entire stack (Frontend + Backend + VectorDB):
    ```
 
 3. **Access the Application**
-   - UI: [http://localhost:5173](http://localhost:5173)
-   - API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+   - UI: [https://researchagent-production-ebd8.up.railway.app/](https://researchagent-production-ebd8.up.railway.app/)
+   - API Docs: [https://researchagent-production-ebd8.up.railway.app/docs](https://researchagent-production-ebd8.up.railway.app/docs)
 
 *(Data is persisted automatically in the `./.data` directory.)*
 
